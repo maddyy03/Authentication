@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Number Authentication</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Login with Mobile</h2>
+        <input type="text" id="phoneNumber" placeholder="Enter mobile number (+91...)" />
+        <button onclick="sendOTP()">Send OTP</button>
+        <div id="recaptcha-container"></div>
+        <input type="text" id="otp" placeholder="Enter OTP" style="display:none;" />
+        <button onclick="verifyOTP()" style="display:none;" id="verify-btn">Verify OTP</button>
+    </div>
+
+    <!-- Firebase and Custom Script -->
+    <script type="module">
+        // Import Firebase libraries
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCghAmZO3HCmQYiTFLHn1kNAO1yV-Na8B8",
+            authDomain: "madhumobile13-1f585.firebaseapp.com",
+            projectId: "madhumobile13-1f585",
+            storageBucket: "madhumobile13-1f585.appspot.com",
+            messagingSenderId: "207950870267",
+            appId: "1:207950870267:web:8af9dd19928ec06a93a25e",
+            measurementId: "G-92TZW5QWNH"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+       
+
+        window.onload = () => {
+            renderCaptcha(); // Ensure reCAPTCHA is rendered on page load
+        };
+
+        // Send OTP
+        function sendOTP() {
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+            // Validate phone number format
+            const phoneRegex = /^\+[1-9]\d{1,14}$/; // E.164 format
+            if (!phoneRegex.test(phoneNumber)) {
+                alert('Invalid phone number. Please enter in the format +<country_code><number>.');
+                return;
+            }
+
+            const appVerifier = window.recaptchaVerifier;
+
+            signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+                .then((confirmationResult) => {
+                    window.confirmationResult = confirmationResult; // Save for later verification
+                    document.getElementById('otp').style.display = 'block';
+                    document.getElementById('verify-btn').style.display = 'block';
+                    alert('OTP sent!');
+                })
+                .catch((error) => {
+                    console.error('Error sending OTP:', error.message);
+                    alert('Failed to send OTP. Try again!');
+                });
+        }
+         // Render reCAPTCHA
+         function renderCaptcha() {
+            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+                size: 'normal',
+                callback: (response) => {
+                    console.log('reCAPTCHA solved');
+                },
+                'expired-callback': () => {
+                    console.log('reCAPTCHA expired');
+                }
+            }, auth); // Pass the auth instance here
+            recaptchaVerifier.render();
+        }
+
+        // Verify OTP
+        function verifyOTP() {
+            const otp = document.getElementById('otp').value;
+
+            window.confirmationResult.confirm(otp)
+                .then((result) => {
+                    const user = result.user;
+                    alert('Authentication successful!');
+                    console.log('User:', user);
+                })
+                .catch((error) => {
+                    console.error('Error verifying OTP:', error.message);
+                    alert('Invalid OTP. Try again!');
+                });
+        }
+
+        // Attach functions to global scope
+        window.sendOTP = sendOTP;
+        window.verifyOTP = verifyOTP;
+    </script>
+</body>
+</html>
